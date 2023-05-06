@@ -1,4 +1,4 @@
-name: Build and publish
+name: Build and Publish Binary
 
 on:
   push:
@@ -7,17 +7,17 @@ on:
 
 jobs:
   build:
-    runs-on: ${{matrix.os}}
+    runs-on: ${{ matrix.os }}
 
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
 
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Setup Rust
+      - name: Set up Rust
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
@@ -25,25 +25,23 @@ jobs:
       - name: Install dependencies
         run: cargo install --path .
 
-      - name: Build
-        run: cargo build --release --target ${{matrix.os}} --bin wgrep
+      - name: Build binary
+        run: cargo build --release --target ${{ matrix.os }} --bin wgrep
 
       - name: Create Release
         uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ github.ref }}
           release_name: Release ${{ github.ref }}
+          body: Automated release for tag ${{ github.ref }}.
           draft: false
           prerelease: false
 
-      - name: Upload binary
+      - name: Upload Binary
         uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./target/${{matrix.os}}/release/wgrep
-          asset_name: wgrep-${{matrix.os}}
+          asset_path: ./target/${{ matrix.os }}/release/wgrep
+          asset_name: wgrep-${{ matrix.os }}-${{ github.ref }}
           asset_content_type: application/octet-stream
+          github_token: ${{ secrets.GITHUB_TOKEN }}
