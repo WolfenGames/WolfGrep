@@ -1,47 +1,45 @@
-name: Build and Publish Binary
+name: Build and Release
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches:
+      - main
 
 jobs:
   build:
+    name: Build and Test
     runs-on: ${{ matrix.os }}
-
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-
+        os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
+      - uses: actions/checkout@v2
       - name: Set up Rust
         uses: actions-rs/toolchain@v1
         with:
+          profile: minimal
           toolchain: stable
+      - name: Build
+        run: cargo build --release
+      - name: Test
+        run: cargo test
 
-      - name: Install dependencies
-        run: cargo install --path .
-
-      - name: Build binary
-        run: cargo build --release --target ${{ matrix.os }} --bin wgrep
-
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Git
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
       - name: Create Release
-        uses: actions/create-release@v1
+        uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          body: Automated release for tag ${{ github.ref }}.
-          draft: false
-          prerelease: false
-
-      - name: Upload Binary
-        uses: actions/upload-release-asset@v1
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./target/${{ matrix.os }}/release/wgrep
-          asset_name: wgrep-${{ matrix.os }}-${{ github.ref }}
-          asset_content_type: application/octet-stream
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          files: |
+            target/release/my_program*
+          token: ${{ secrets.GITHUB_TOKEN }}
+          body: |
+            Release for version ${{ github.ref }}
+            Check the README for more details
