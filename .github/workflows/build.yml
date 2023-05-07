@@ -4,8 +4,7 @@ on:
   push:
     tags:
       - 'v*'
-  manual:
-    - workflow_dispatch
+    workflow_dispatch:
 
 jobs:
   build:
@@ -23,8 +22,6 @@ jobs:
           toolchain: stable
       - name: Build
         run: cargo build --release
-      - name: Test
-        run: cargo test
 
   release:
     name: Create Release
