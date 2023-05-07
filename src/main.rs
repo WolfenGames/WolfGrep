@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::env;
 use std::fs;
 use std::io::{self, BufRead, BufReader};
@@ -10,6 +11,7 @@ fn search_file(file_path: &Path, pattern: &str) -> io::Result<Vec<(usize, String
     let file = fs::File::open(file_path)?;
     let reader = BufReader::new(file);
     let mut matches = Vec::new();
+    let mut matched_lines = HashSet::new();
 
     for (i, line) in reader.lines().enumerate() {
         let line = match line {
@@ -21,14 +23,18 @@ fn search_file(file_path: &Path, pattern: &str) -> io::Result<Vec<(usize, String
                 .match_indices(pattern)
                 .map(|(start, _)| start)
                 .collect::<Vec<_>>();
-            for start in line_matches {
+            for _ in line_matches {
                 let line_number = i + 1;
+                if matched_lines.contains(&line_number) {
+                    continue;
+                }
                 let formatted_line = format!(
                     "{}:{}\n\t{}",
                     file_path.display(),
                     line_number,
-                    &line[start..]
+                    &line
                 );
+                matched_lines.insert(line_number);
                 matches.push((line_number, formatted_line));
             }
         }
@@ -100,7 +106,6 @@ fn main() {
     let matches = matches.lock().unwrap().clone();
 
     for (line_number, line) in &matches {
-        // println!("Line {}: Matched \"{}\"", line_number, pattern);
         let output = line.replace(pattern, &pattern.red().to_string());
         println!("{}: {}",line_number, output);
     }
